@@ -1,0 +1,20 @@
+[
+  {
+    "filename": "document1.pdf",
+    "originalname": "Document 1",
+    "mimetype": "application/pdf",
+    "size": 1024
+  },
+  {
+    "filename": "image1.jpg",
+    "originalname": "Image 1",
+    "mimetype": "image/jpeg",
+    "size": 2048
+  },
+  {
+    "filename": "spreadsheet1.xlsx",
+    "originalname": "Spreadsheet 1",
+    "mimetype": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "size": 3072
+  }
+]

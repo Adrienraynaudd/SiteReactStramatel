@@ -2,12 +2,16 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' });
 
 const app = express();
 const port = 5000;
 
 app.use(cors());
 app.use(express.json());
+app.use(bodyParser.json());
+
 
 const utilisateurSchema = new mongoose.Schema({
     utilisateurs: [
@@ -22,6 +26,19 @@ const utilisateurSchema = new mongoose.Schema({
 const Users = mongoose.model('Users', utilisateurSchema);
 
 module.exports = Users;
+
+const fileSchema = new mongoose.Schema({
+    filename: String,
+    originalname: String,
+    mimetype: String,
+    size: Number,
+    url: String,
+}, { collection: 'Files' });
+
+const File = mongoose.model('File', fileSchema);
+
+module.exports = File;
+
 
 mongoose.connect('mongodb://localhost:27017/Users', {
     useNewUrlParser: true,
@@ -80,7 +97,24 @@ app.post('/login', async (req, res) => {
     }
 });
 
+app.post('/upload', upload.single('file'), async (req, res) => {
+    try {
+        const file = req.file;
 
+        const savedFile = await File.create({
+            filename: file.filename,
+            originalname: file.originalname,
+            mimetype: file.mimetype,
+            size: file.size,
+            url: file.path
+        });
+
+        res.json({ message: 'Fichier telecharge avec succes', file: savedFile });
+    } catch (error) {
+        console.error('Erreur lors du telechargement du fichier :', error);
+        res.status(500).json({ error: 'Erreur serveur lors du téléchargement du fichier' });
+    }
+});
 
 
 
