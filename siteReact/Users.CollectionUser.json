@@ -1,0 +1,30 @@
+[{
+  "_id": {
+    "$oid": "6569e76790ea1dbe7e3dc910"
+  },
+  "utilisateurs": [
+    {
+      "utilisateur": "john_doe",
+      "mot_de_passe": "mot_de_passe_secure",
+      "roles": [
+        "utilisateur"
+      ]
+    },
+    {
+      "utilisateur": "janesmith",
+      "mot_de_passe": "mot_de_passe_secret",
+      "roles": [
+        "admin",
+        "utilisateur"
+      ]
+    },
+    {
+      "utilisateur": "adrien",
+      "mot_de_passe": "adrien",
+      "roles": [
+        "admin",
+        "utilisateur"
+      ]
+    }
+  ]
+}]
