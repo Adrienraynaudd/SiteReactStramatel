@@ -175,6 +175,27 @@ app.get('/download/:filename', async (req, res) => {
         res.status(500).send('Internal Server Error');
     }
 });
+app.delete('/deleteFile/:filename', async (req, res) => {
+    const filename = req.params.filename;
+    const filePath = path.join(__dirname, 'uploads', filename);
+
+    try {
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
+
+        const deletedFile = await File.findOneAndDelete({ filename });
+
+        if (deletedFile) {
+            res.json({ message: 'Fichier supprimé avec succès.' });
+        } else {
+            res.status(404).json({ error: 'Le fichier n\'existe pas.' });
+        }
+    } catch (error) {
+        console.error('Erreur lors de la suppression du fichier :', error);
+        res.status(500).json({ error: 'Erreur lors de la suppression du fichier.' });
+    }
+});
 
 app.use('/uploads', express.static('uploads'));
 app.listen(port, () => {
