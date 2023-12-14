@@ -4,6 +4,8 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
+const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const port = 5000;
@@ -31,14 +33,23 @@ const fileSchema = new mongoose.Schema({
     filename: String,
     originalname: String,
     mimetype: String,
+    previewUrl : String,
     size: Number,
-    url: String,
+    data: Buffer,
 }, { collection: 'Files' });
 
 const File = mongoose.model('File', fileSchema);
 
 module.exports = File;
 
+const clientSchema = new mongoose.Schema({
+    ID: { type: String, required: true },
+    Name: { type: String, required: true },
+});
+
+const Client = mongoose.model('client', clientSchema);
+
+module.exports = Client;
 
 mongoose.connect('mongodb://localhost:27017/Users', {
     useNewUrlParser: true,
@@ -73,6 +84,16 @@ app.get('/getUserRole/:username', async (req, res) => {
     }
 });
 
+app.get('/getFiles', async (req, res) => {
+    try {
+        const files = await File.find({}, 'filename previewUrl originalname mimetype');
+        res.json({ files });
+    } catch (error) {
+        console.error('Erreur lors de la récupération des fichiers :', error);
+        res.status(500).json({ error: 'Erreur serveur lors de la récupération des fichiers' });
+    }
+});
+
 
 
 app.post('/login', async (req, res) => {
@@ -101,29 +122,60 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     try {
         const file = req.file;
 
+        console.log('Nom du fichier avant création :', `${file.filename}${path.extname(file.originalname)}`);
+
         const savedFile = await File.create({
-            filename: file.filename,
+            filename: `${file.filename}`,
             originalname: file.originalname,
             mimetype: file.mimetype,
             size: file.size,
-            url: file.path
+            data: file.buffer,
         });
 
-        res.json({ message: 'Fichier telecharge avec succes', file: savedFile });
+        console.log('Nom du fichier après création :', savedFile.filename);
+
+        savedFile.previewUrl = `/uploads/${savedFile.filename}`;
+
+        await savedFile.save();
+        console.log(savedFile)
+        res.json({ message: 'Fichier téléchargé avec succès', file: savedFile });
     } catch (error) {
-        console.error('Erreur lors du telechargement du fichier :', error);
+        console.error('Erreur lors du téléchargement du fichier :', error);
         res.status(500).json({ error: 'Erreur serveur lors du téléchargement du fichier' });
     }
 });
 
+app.post('/AddDico', async (req, res) => {
+    try {
+        const { ID, Name } = req.body;
+        const dico = new Client({ ID, Name });
 
+        await dico.save();
 
+        res.status(201).json({ message: 'Couple ajouté avec succès' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Erreur lors de l\'ajout du couple' });
+    }
+});
 
+app.get('/download/:filename', async (req, res) => {
+    try {
+        const filename = req.params.filename;
+        const filePath = path.join(__dirname, 'uploads', filename);
 
+        if (fs.existsSync(filePath)) {
+            res.sendFile(filePath);
+        } else {
+            res.status(404).send('File not found');
+        }
+    } catch (error) {
+        console.error('Error downloading file:', error);
+        res.status(500).send('Internal Server Error');
+    }
+});
 
-
-
-
+app.use('/uploads', express.static('uploads'));
 app.listen(port, () => {
     console.log(`Serveur en cours d'exécution sur http://localhost:${port}`);
 });
