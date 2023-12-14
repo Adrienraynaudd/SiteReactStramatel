@@ -130,6 +130,7 @@ app.post('/upload', upload.single('file'), async (req, res) => {
             mimetype: file.mimetype,
             size: file.size,
             data: file.buffer,
+            previewUrl: file.previewUrl,
         });
 
         console.log('Nom du fichier après création :', savedFile.filename);
