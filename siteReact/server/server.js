@@ -36,6 +36,7 @@ const fileSchema = new mongoose.Schema({
     previewUrl : String,
     size: Number,
     data: Buffer,
+    visibility: { type: String, default: 'All' },
 }, { collection: 'Files' });
 
 const File = mongoose.model('File', fileSchema);
@@ -47,7 +48,7 @@ const clientSchema = new mongoose.Schema({
     Name: { type: String, required: true },
 });
 
-const Client = mongoose.model('client', clientSchema);
+const Client = mongoose.model('clients', clientSchema);
 
 module.exports = Client;
 
@@ -86,8 +87,25 @@ app.get('/getUserRole/:username', async (req, res) => {
 
 app.get('/getFiles', async (req, res) => {
     try {
-        const files = await File.find({}, 'filename previewUrl originalname mimetype');
+        const files = await File.find({}, 'filename previewUrl originalname mimetype visibility');
         res.json({ files });
+    } catch (error) {
+        console.error('Erreur lors de la récupération des fichiers :', error);
+        res.status(500).json({ error: 'Erreur serveur lors de la récupération des fichiers' });
+    }
+});
+
+app.get('/getFileByOriginalname/:originalname', async (req, res) => {
+    try {
+        const { originalname } = req.params;
+
+        const result = await File.findOne({ originalname }, 'filename');
+
+        if (result && result.filename) {
+            res.json({ filename: result.filename });
+        } else {
+            res.status(404).json({ error: 'Fichier non trouvé pour l\'originalname spécifié' });
+        }
     } catch (error) {
         console.error('Erreur lors de la récupération des fichiers :', error);
         res.status(500).json({ error: 'Erreur serveur lors de la récupération des fichiers' });
@@ -121,9 +139,8 @@ app.post('/login', async (req, res) => {
 app.post('/upload', upload.single('file'), async (req, res) => {
     try {
         const file = req.file;
-
-        console.log('Nom du fichier avant création :', `${file.filename}${path.extname(file.originalname)}`);
-
+        const companies = req.body.selectedCompany; 
+        console.log(companies);
         const savedFile = await File.create({
             filename: `${file.filename}`,
             originalname: file.originalname,
@@ -131,20 +148,19 @@ app.post('/upload', upload.single('file'), async (req, res) => {
             size: file.size,
             data: file.buffer,
             previewUrl: file.previewUrl,
+            visibility: companies,
         });
 
-        console.log('Nom du fichier après création :', savedFile.filename);
-
         savedFile.previewUrl = `/uploads/${savedFile.filename}`;
-
         await savedFile.save();
-        console.log(savedFile)
+
         res.json({ message: 'Fichier téléchargé avec succès', file: savedFile });
     } catch (error) {
         console.error('Erreur lors du téléchargement du fichier :', error);
         res.status(500).json({ error: 'Erreur serveur lors du téléchargement du fichier' });
     }
 });
+
 
 app.post('/AddDico', async (req, res) => {
     try {
@@ -177,6 +193,7 @@ app.get('/download/:filename', async (req, res) => {
 });
 app.delete('/deleteFile/:filename', async (req, res) => {
     const filename = req.params.filename;
+    console.log('Delete file request received for filename:', filename);
     const filePath = path.join(__dirname, 'uploads', filename);
 
     try {
@@ -196,6 +213,16 @@ app.delete('/deleteFile/:filename', async (req, res) => {
         res.status(500).json({ error: 'Erreur lors de la suppression du fichier.' });
     }
 });
+
+app.get('/getCompanies', async (req, res) => {
+    try {
+        const Clients = await Client.find({}, 'Name');
+        res.json({ companies: Clients.map(client => client.Name) });
+    } catch (error) {
+        console.error('Error get Companies file:', error);
+        res.status(500).send('Internal Server Error');
+    }
+})
 
 app.use('/uploads', express.static('uploads'));
 app.listen(port, () => {
