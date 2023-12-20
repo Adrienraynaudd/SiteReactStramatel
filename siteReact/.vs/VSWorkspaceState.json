@@ -4,10 +4,8 @@
     "\\client",
     "\\client\\src",
     "\\client\\src\\components",
-    "\\client\\src\\components\\pages",
-    "\\server",
-    "\\server\\uploads"
+    "\\server"
   ],
-  "SelectedNode": "\\server\\uploads\\8e7f82ec2598047be2cd6fc8bd49abe0.gif",
+  "SelectedNode": "\\client\\src\\components\\FileItem.js",
   "PreviewInSolutionExplorer": false
 }

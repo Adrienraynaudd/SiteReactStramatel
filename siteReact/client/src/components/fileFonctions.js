@@ -1,9 +1,10 @@
 import axios from 'axios';
 
-export const handleUpload = async (file) => {
+export const handleUpload = async (file, selectedCompany) => {
     try {
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('selectedCompany', selectedCompany);
 
         const response = await fetch('http://localhost:5000/upload', {
             method: 'POST',
@@ -12,7 +13,7 @@ export const handleUpload = async (file) => {
 
         if (response.ok) {
             console.log('Fichier téléchargé avec succès');
-        } else {
+        } else { 
             console.error('Erreur lors du téléchargement du fichier');
         }
     } catch (error) {
