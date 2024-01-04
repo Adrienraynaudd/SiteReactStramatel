@@ -22,7 +22,31 @@ export const getFiles = async () => {
             throw new Error(`Réponse non OK: ${response.status}`);
         }
         const data = await response.json();
-        return data.files;
+        const filesByFolder = data.files.reduce((acc, file) => {
+            const { folderName } = file;
+            const folderKey = folderName || 'Default';
+
+            if (!acc[folderKey]) {
+                acc[folderKey] = [];
+            }
+            acc[folderKey].push(file);
+            return acc;
+        }, {});
+        /*for (const folderKey in filesByFolder) {
+            if (Object.hasOwnProperty.call(filesByFolder, folderKey)) {
+                console.log(`Dossier : ${folderKey}`);
+
+                // Accéder au tableau de fichiers pour ce dossier
+                const filesInFolder = filesByFolder[folderKey];
+
+                // Boucle à travers les fichiers dans ce dossier
+                for (const file of filesInFolder) {
+                    console.log(`Nom du fichier : ${file.originalname}`);
+                    console.log(`Chemin du fichier : ${file.previewUrl}`);
+                }
+            }
+        }*/
+        return filesByFolder;
     } catch (error) {
         console.error('Erreur lors de la recuperation des fichiers:', error);
         throw error;

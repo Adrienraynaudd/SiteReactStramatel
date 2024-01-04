@@ -24,13 +24,14 @@ const Popup = ({ isPopupOpen, setPopupOpen, selectedFolder, folderItems, saveAs,
                                         </div>
                                     ) : (
                                         <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
-                                            {item.name && (item.name.endsWith('.png') || (item.name.endsWith('.gif')) ? (
+                                                {item.name && (item.name.endsWith('.png') || (item.name.endsWith('.gif')) || (item.name.endsWith('.jpg')) ? (
                                                 <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
 
                                                     <p style={{ marginLeft: '10px', cursor: 'pointer' }} onClick={() => saveAs(item, item.name)}>
                                                         {item.name}
-                                                    </p>
-                                                    <button style={{ width: '40px', height: '40px' }} onClick={() => handleDelete(item)}>🗑️</button>
+                                                        </p>
+                                                        
+                                                        <button style={{ width: '40px', height: '40px' }} onClick={() => handleDelete(item)}>🗑️</button>
                                                 </div>
                                             ) : (
                                                 <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>

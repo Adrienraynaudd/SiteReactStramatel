@@ -16,7 +16,7 @@ const FolderItem = ({ item, setPopupOpen, setSelectedFolder, handleDelete }) => 
                 📁
             </span>
             <p style={{ marginLeft: '10px', cursor: 'pointer' }}>{item.name}</p>
-            <button style={{ width: '40px', height: '40px' }} onClick={() => handleDelete(item)}>
+            <button style={{ width: '40px', height: '40px' }} onClick={() => handleDelete(item, item.name)}>
                 🗑️
             </button>
         </div>

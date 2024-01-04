@@ -1,4 +1,4 @@
-import axios from 'axios';
+ï»¿import axios from 'axios';
 
 export const handleUpload = async (file, selectedCompany) => {
     try {
@@ -12,14 +12,43 @@ export const handleUpload = async (file, selectedCompany) => {
         });
 
         if (response.ok) {
-            console.log('Fichier téléchargé avec succès');
+            console.log('Fichier tÃ©lÃ©chargÃ© avec succÃ¨s');
         } else { 
-            console.error('Erreur lors du téléchargement du fichier');
+            console.error('Erreur lors du tÃ©lÃ©chargement du fichier');
         }
     } catch (error) {
-        console.error('Erreur lors du téléchargement du fichier:', error);
+        console.error('Erreur lors du tÃ©lÃ©chargement du fichier:', error);
     }
 };
+export const handleUploadFolder = async (filesWithPreviews, selectedCompany, folderName) => {
+    try {
+        const formData = new FormData();
+        formData.append('selectedCompany', selectedCompany);
+        formData.append('folderName', folderName);
+        await Promise.all(filesWithPreviews.map(async ({ file, previewUrl }) => {
+            formData.append(`files`, file);
+            // Ajoutez Ã©galement les aperÃ§us au formulaire si nÃ©cessaire
+            if (previewUrl) {
+                formData.append(`previews`, previewUrl);
+            }
+            return file;
+        }));
+        const response = await fetch('http://localhost:5000/uploadFolder', {
+            method: 'POST',
+            body: formData,
+        });
+        if (response.ok) {
+            console.log('Dossier tÃ©lÃ©chargÃ© avec succÃ¨s');
+
+        } else {
+            console.error('Erreur lors du tÃ©lÃ©chargement du Dossier');
+        }
+    } catch (error) {
+        console.error('Erreur lors du tÃ©lÃ©chargement du Dossier :', error);
+    }
+};
+
+
 
 export const handleDownload = async (file) => {
     try {
@@ -29,13 +58,13 @@ export const handleDownload = async (file) => {
 
         const blob = new Blob([response.data]);
 
-        // Définir le type MIME correct
+        // DÃ©finir le type MIME correct
         const contentType = response.headers['content-type'];
 
-        // Créer un objet URL pour le blob
+        // CrÃ©er un objet URL pour le blob
         const fileUrl = URL.createObjectURL(blob);
 
-        // Créer un lien virtuel et déclencher un téléchargement
+        // CrÃ©er un lien virtuel et dÃ©clencher un tÃ©lÃ©chargement
         const link = document.createElement('a');
         link.href = fileUrl;
         link.setAttribute('download', file.originalname);
@@ -44,26 +73,29 @@ export const handleDownload = async (file) => {
         // Ajouter le lien au document
         document.body.appendChild(link);
 
-        // Déclencher le téléchargement
+        // DÃ©clencher le tÃ©lÃ©chargement
         link.click();
 
         // Retirer le lien du document
         document.body.removeChild(link);
 
-        // Révoquer l'URL de l'objet blob pour libérer la mémoire
+        // RÃ©voquer l'URL de l'objet blob pour libÃ©rer la mÃ©moire
         URL.revokeObjectURL(fileUrl);
     } catch (error) {
         console.error('Error downloading file:', error);
     }
 };
 
-export const handlePreview = async (file) => {
+export const handlePreview = async (file,type) => {
     try {
-        const response = await axios.get(`http://localhost:5000/download/${file.filename}`, {
-            responseType: 'blob',
-        });
+        let name = file.filename ? file.filename : file.name;
 
+        console.log(type);
+        const response = await axios.get(`http://localhost:5000/download/${name}/${type}`, {
+                responseType: 'blob',
+            });
         const blob = new Blob([response.data]);
+        console.log(blob);
         const contentType = response.headers['content-type'];
 
         const dataUrl = URL.createObjectURL(blob);

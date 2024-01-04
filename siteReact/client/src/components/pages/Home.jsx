@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { saveAs } from 'file-saver';
-import { handleUpload, handleDownload, handlePreview } from '../fileFonctions';
+import { handleUpload, handleDownload, handlePreview, handleUploadFolder } from '../fileFonctions';
 import axios from 'axios';
 import '../styles/PopUp.css';
 import Popup from '../Popup';
@@ -57,18 +57,21 @@ const Home = () => {
                 const entry = item.webkitGetAsEntry();
 
                 if (entry.isDirectory) {
+                    console.log("directory");
                     const folderReader = entry.createReader();
-                    const  folderItems  = await readFolder(folderReader);
-
-                    console.log('Folder Items:', folderItems);
+                    const folderItems = await readFolder(folderReader);
+                    const filesWithPreviews = await Promise.all(Array.from(folderItems.folderItems).map(async (fileEntry) => {
+                        const file = await getFileFromEntry(fileEntry);
+                        const types = entry.name;
+                        const previewUrl = file ? (file.type.startsWith('image/') ? await handlePreview(file, types) : null) : null;
+                        return { file, previewUrl };
+                    }));
                     setFolderItems(folderItems);
-                    setDraggedItems((prevItems) => [...prevItems, entry]);
-                    console.log(draggedItems);
-
+                    setDraggedItems((prevItems) => [...prevItems, ...filesWithPreviews]);
+                    handleUploadFolder(filesWithPreviews, selectedCompany, entry.name);
                 } else {
                     const file = item.getAsFile();
                     console.log('Dropped File:', file);
-
                     const previewUrl = file.type.startsWith('image/') ? URL.createObjectURL(file) : null;
                     setDraggedItems((prevItems) => [...prevItems, { file, previewUrl }]);
                     handleUpload(file, selectedCompany);
@@ -77,6 +80,11 @@ const Home = () => {
             }
         }
     };
+    const getFileFromEntry = async (fileEntry) => {
+        return new Promise((resolve, reject) => {
+            fileEntry.file(resolve, reject);
+        });
+    }
 
     const readFolder = async (folderReader) => {
         return new Promise((resolve) => {
@@ -115,31 +123,58 @@ const Home = () => {
     };
     const handleDelete = async (file) => {
         try {
-            if (file && file.filename) {
-                await axios.delete(`http://localhost:5000/deleteFile/${file.filename}`);
-                setFiles((prevFiles) => prevFiles.filter((f) => f.filename !== file.filename));
-            } else if (file && file.file.name) {
-                try {
+            if (file) {
+                if (file.isDirectory) {
+                    await axios.delete(`http://localhost:5000/deleteFolder/${file.name}`);
+                } else if (file.filename) {
+                    await axios.delete(`http://localhost:5000/deleteFile/${file.filename}`);
+                } else if (file.file && file.file.name) {
                     const response = await fetch(`http://localhost:5000/getFileByOriginalname/${file.file.name}`);
-                    if (!response.ok) {
-                        throw new Error(`Reponse non OK: ${response.status}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        await axios.delete(`http://localhost:5000/deleteFile/${data.filename}`);
+                        setDraggedItems((prevItems) => prevItems.filter((item) => item.file.name !== file.file.name));
+                    } else {
+                        console.error(`Réponse non OK: ${response.status}`);
                     }
-                    const data = await response.json();
-
-                    console.log(data);
-
-                    await axios.delete(`http://localhost:5000/deleteFile/${data.filename}`);
-                    setDraggedItems((prevItems) => prevItems.filter((item) => item.file.name !== file.file.name));
-                } catch (error) {
-                    console.error('Erreur lors de la récupération du fichier par originalname :', error);
+                } else {
+                    console.error('Le fichier ou le nom du fichier est undefined');
                 }
-            } else {
-                console.error('Le fichier ou le nom du fichier est undefined');
+
+                setFiles((prevFiles) => {
+                    if (prevFiles && prevFiles.file && prevFiles.file.length > 0) {
+                        
+                        const updatedFiles = prevFiles.file.filter((f) => f.filename !== file.filename);
+                        //window.location.reload();
+                        return { ...prevFiles, file: updatedFiles };
+                    } else if (prevFiles && Object.keys(prevFiles).length > 0) {
+                        const updatedFiles = { ...prevFiles };
+
+                        // Si c'est un dossier, filtrer les fichiers qui ne sont pas dans ce dossier
+                        if (file.folderName) {
+                            updatedFiles[file.folderName] = updatedFiles[file.folderName].filter((f) => f.filename !== file.filename);
+
+                            // Supprimer le dossier s'il ne contient plus de fichiers
+                            if (updatedFiles[file.folderName].length === 0) {
+                                delete updatedFiles[file.folderName];
+                            }
+                        } else {
+                            // Si c'est un fichier, simplement le retirer de la liste
+                            console.error('Le fichier ou le nom du fichier est undefined');
+                        }
+
+                        return updatedFiles;
+                    } else {
+                        console.warn('PrevFiles est undefined ou vide');
+                        return { file: [] };
+                    }
+                });
             }
         } catch (error) {
             console.error('Erreur lors de la suppression du fichier :', error);
         }
     };
+
 
     const handleSelectChange = (e) => {
         setSelectedCompany((prevValue) => {
@@ -149,10 +184,25 @@ const Home = () => {
 
     useEffect(() => {
         (async () => {
-            const previews = await Promise.all(files.map(file => handlePreview(file)));
-            setPreviewUrls(previews);
+            const filesData = await getFiles();
+
+            if (filesData && filesData.file) {
+                setFiles(filesData);
+
+                const previewsByFolder = {};
+                for (const folderName in filesData) {
+                    const folderFiles = filesData[folderName];
+                    const types = "file";
+                    const previews = await Promise.all(folderFiles.map(file => handlePreview(file, types)));
+                    previewsByFolder[folderName] = previews;
+                }
+                setPreviewUrls(previewsByFolder);
+            } else {
+                console.error('Erreur: filesData ou filesData.file est null ou undefined.');
+            }
         })();
-    }, [files]); 
+    }, []);
+
 
     return (
         <div>
@@ -174,11 +224,16 @@ const Home = () => {
             >
                 <h2>Drop Zone</h2>
                 <ul>
-                    {files.map((file, index) => (
-                        ((file.visibility === selectedCompany || file.visibility === 'All' || selectedCompany === 'All') && (
-                            <FileFromDb file={file} index={index} previewUrls={previewUrls} handleDownload={handleDownload} handleDelete={handleDelete} />
-                        ))
+                    {Object.keys(files).map(folderName => (
+                        <FileFromDb
+                            key={folderName}
+                            files={files[folderName]}
+                            previewUrls={previewUrls[folderName] || []}
+                            handleDownload={handleDownload}
+                            handleDelete={handleDelete}
+                        />
                     ))}
+
                     {draggedItems.map((item, index) => (
                         <li key={index}>
                             {item && item.file && (
