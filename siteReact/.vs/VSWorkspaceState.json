@@ -5,7 +5,9 @@
     "\\client\\src",
     "\\client\\src\\components",
     "\\client\\src\\components\\pages",
-    "\\server"
+    "\\server",
+    "\\server\\uploads"
   ],
+  "SelectedNode": "\\client\\src\\components\\FileItem.js",
   "PreviewInSolutionExplorer": false
 }

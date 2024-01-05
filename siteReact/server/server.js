@@ -6,6 +6,7 @@ const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
 const path = require('path');
 const fs = require('fs');
+const { v4: uuidv4 } = require('uuid');
 
 const app = express();
 const port = 5000;
@@ -150,7 +151,7 @@ app.post('/upload', upload.single('file'), async (req, res) => {
             previewUrl: file.previewUrl,
             visibility: companies,
         });
-        savedFile.previewUrl = `/uploads/${savedFile.filename}`;
+        savedFile.previewUrl = `/uploads/${savedFile.originalname}`;
         await savedFile.save();
         res.json({ message: 'Fichier téléchargé avec succès', file: savedFile });
     } catch (error) {
@@ -185,7 +186,7 @@ app.post('/uploadFolder', uploadFolder.array('files'), async (req, res) => {
         const folderName = req.body.folderName;
         for (const file of files) {
             const savedFile = await File.create({
-                filename: file.filename,
+                filename: uuidv4(),
                 originalname: file.originalname,
                 mimetype: file.mimetype,
                 size: file.size,
@@ -195,7 +196,7 @@ app.post('/uploadFolder', uploadFolder.array('files'), async (req, res) => {
                 folderName: folderName,
                 
             });
-            savedFile.previewUrl = `/uploads/${folderName}/${savedFile.filename}`;
+            savedFile.previewUrl = `/uploads/${folderName}/${savedFile.originalname}`;
             await savedFile.save();
             
         }
@@ -234,24 +235,39 @@ app.get('/download/:name/:type', async (req, res) => {
         if (fs.existsSync(filePath)) {
             res.sendFile(filePath);
         } else {
-            res.status(404).send('File not found');
+            res.status(404).send(filePath);
         }
     } catch (error) {
         console.error('Error downloading file:', error);
         res.status(500).send('Internal Server Error');
     }
 });
-app.delete('/deleteFile/:filename', async (req, res) => {
-    const filename = req.params.filename;
+app.delete('/deleteFile/:filename/:type', async (req, res) => {
+    const { filename, type } = req.params;
     console.log('Delete file request received for filename:', filename);
-    const filePath = path.join(__dirname, 'uploads', filename);
+    let filePath;
+    if (type !== "file") {
+        filePath = path.join(__dirname, `/uploads/${type}`, filename);
+    } else {
+        filePath = path.join(__dirname, 'uploads', filename);
+    }
 
     try {
         if (fs.existsSync(filePath)) {
             fs.unlinkSync(filePath);
-        }
+            const folderPath = path.dirname(filePath);
+            const filesInFolder = fs.readdirSync(folderPath);
 
-        const deletedFile = await File.findOneAndDelete({ filename });
+            if (filesInFolder.length === 0) {
+                fs.rmdirSync(folderPath);
+            }
+        }
+        let deletedFile;
+        if (type !== "file") {
+             deletedFile = await File.findOneAndDelete({ originalname: filename });
+        } else {
+             deletedFile = await File.findOneAndDelete({ filename });
+        }
 
         if (deletedFile) {
             res.json({ message: 'Fichier supprimé avec succès.' });

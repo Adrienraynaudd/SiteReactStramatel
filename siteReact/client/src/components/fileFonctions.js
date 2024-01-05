@@ -88,14 +88,15 @@ export const handleDownload = async (file) => {
 
 export const handlePreview = async (file,type) => {
     try {
-        let name = file.filename ? file.filename : file.name;
 
-        console.log(type);
+        let name = file.originalname ? file.originalname : file.name;
+        if (type == "file") {
+            name = file.filename;
+        }
         const response = await axios.get(`http://localhost:5000/download/${name}/${type}`, {
                 responseType: 'blob',
             });
         const blob = new Blob([response.data]);
-        console.log(blob);
         const contentType = response.headers['content-type'];
 
         const dataUrl = URL.createObjectURL(blob);

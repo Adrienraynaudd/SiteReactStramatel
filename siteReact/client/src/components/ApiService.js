@@ -23,29 +23,14 @@ export const getFiles = async () => {
         }
         const data = await response.json();
         const filesByFolder = data.files.reduce((acc, file) => {
-            const { folderName } = file;
-            const folderKey = folderName || 'Default';
+            const folderName = file.folderName || 'Default';
 
-            if (!acc[folderKey]) {
-                acc[folderKey] = [];
+            if (!acc[folderName]) {
+                acc[folderName] = [];
             }
-            acc[folderKey].push(file);
+            acc[folderName].push(file);
             return acc;
         }, {});
-        /*for (const folderKey in filesByFolder) {
-            if (Object.hasOwnProperty.call(filesByFolder, folderKey)) {
-                console.log(`Dossier : ${folderKey}`);
-
-                // Accéder au tableau de fichiers pour ce dossier
-                const filesInFolder = filesByFolder[folderKey];
-
-                // Boucle à travers les fichiers dans ce dossier
-                for (const file of filesInFolder) {
-                    console.log(`Nom du fichier : ${file.originalname}`);
-                    console.log(`Chemin du fichier : ${file.previewUrl}`);
-                }
-            }
-        }*/
         return filesByFolder;
     } catch (error) {
         console.error('Erreur lors de la recuperation des fichiers:', error);
@@ -66,3 +51,17 @@ export const getCompanies = async () => {
         throw error;
     }
 };
+/*for (const folderKey in filesByFolder) {
+            if (Object.hasOwnProperty.call(filesByFolder, folderKey)) {
+                console.log(`Dossier : ${folderKey}`);
+
+                // Accéder au tableau de fichiers pour ce dossier
+                const filesInFolder = filesByFolder[folderKey];
+
+                // Boucle à travers les fichiers dans ce dossier
+                for (const file of filesInFolder) {
+                    console.log(`Nom du fichier : ${file.originalname}`);
+                    console.log(`Chemin du fichier : ${file.previewUrl}`);
+                }
+            }
+        }*/

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React,{ useState, useEffect } from 'react';
 import { saveAs } from 'file-saver';
 import { handleUpload, handleDownload, handlePreview, handleUploadFolder } from '../fileFonctions';
 import axios from 'axios';
@@ -55,27 +55,30 @@ const Home = () => {
 
             if (item.kind === 'file' && item.webkitGetAsEntry) {
                 const entry = item.webkitGetAsEntry();
-
                 if (entry.isDirectory) {
-                    console.log("directory");
                     const folderReader = entry.createReader();
                     const folderItems = await readFolder(folderReader);
                     const filesWithPreviews = await Promise.all(Array.from(folderItems.folderItems).map(async (fileEntry) => {
                         const file = await getFileFromEntry(fileEntry);
                         const types = entry.name;
                         const previewUrl = file ? (file.type.startsWith('image/') ? await handlePreview(file, types) : null) : null;
-                        return { file, previewUrl };
+                        return { file, previewUrl, types };
                     }));
                     setFolderItems(folderItems);
                     setDraggedItems((prevItems) => [...prevItems, ...filesWithPreviews]);
-                    handleUploadFolder(filesWithPreviews, selectedCompany, entry.name);
+                    handleUploadFolder(filesWithPreviews, selectedCompany, entry.name)
+                        .then(() => {
+                            window.location.reload();
+                        })
                 } else {
                     const file = item.getAsFile();
                     console.log('Dropped File:', file);
                     const previewUrl = file.type.startsWith('image/') ? URL.createObjectURL(file) : null;
                     setDraggedItems((prevItems) => [...prevItems, { file, previewUrl }]);
-                    handleUpload(file, selectedCompany);
-                    //window.location.reload();
+                    handleUpload(file, selectedCompany)
+                    .then(() => {
+                        window.location.reload();
+                    })
                 }
             }
         }
@@ -127,7 +130,12 @@ const Home = () => {
                 if (file.isDirectory) {
                     await axios.delete(`http://localhost:5000/deleteFolder/${file.name}`);
                 } else if (file.filename) {
-                    await axios.delete(`http://localhost:5000/deleteFile/${file.filename}`);
+                    if (file.folderName === "file") {
+                        await axios.delete(`http://localhost:5000/deleteFile/${file.filename}/${file.folderName}`);
+                    }
+                    else {
+                        await axios.delete(`http://localhost:5000/deleteFile/${file.originalname}/${file.folderName}`);
+                    }
                 } else if (file.file && file.file.name) {
                     const response = await fetch(`http://localhost:5000/getFileByOriginalname/${file.file.name}`);
                     if (response.ok) {
@@ -184,24 +192,30 @@ const Home = () => {
 
     useEffect(() => {
         (async () => {
-            const filesData = await getFiles();
+            try {
+                const filesData = await getFiles();
+                if (filesData) {
+                    const previewsByFolder = {};
+                    for (const folderName in filesData) {
+                        const folderFiles = filesData[folderName];
+                        const types = folderName
+                        const previews = await Promise.all(folderFiles.map(file => handlePreview(file, types)));
+                        previewsByFolder[folderName] = previews;
+                    }
 
-            if (filesData && filesData.file) {
-                setFiles(filesData);
 
-                const previewsByFolder = {};
-                for (const folderName in filesData) {
-                    const folderFiles = filesData[folderName];
-                    const types = "file";
-                    const previews = await Promise.all(folderFiles.map(file => handlePreview(file, types)));
-                    previewsByFolder[folderName] = previews;
+                    setFiles(filesData);
+                    setPreviewUrls(previewsByFolder);
+                } else {
+                    console.warn('No files data received.');
                 }
-                setPreviewUrls(previewsByFolder);
-            } else {
-                console.error('Erreur: filesData ou filesData.file est null ou undefined.');
+            } catch (error) {
+                console.error('Error fetching files data:', error);
             }
         })();
     }, []);
+
+
 
 
     return (
@@ -233,7 +247,15 @@ const Home = () => {
                             handleDelete={handleDelete}
                         />
                     ))}
-
+                    {draggedItems.length > 0 && draggedItems[0].types !== undefined && draggedItems[0].types !== 'file' && (
+                        <div>
+                            <span role="img" aria-label="Folder" style={{ marginRight: '8px' }}>
+                                📁
+                                {draggedItems[0].types}
+                            </span>
+                            
+                        </div>
+                    )}
                     {draggedItems.map((item, index) => (
                         <li key={index}>
                             {item && item.file && (
