@@ -47,7 +47,10 @@ const Home = () => {
 
     const handleDrop = async (event) => {
         event.preventDefault();
-
+        if (!userRoles.includes('Stramatel') && !userRoles.includes('admin')) {
+            console.log('Vous n\'avez pas les permissions nécessaires pour effectuer cette action.');
+            return
+        }
         const items = event.dataTransfer.items;
 
         for (let i = 0; i < items.length; i++) {
@@ -240,11 +243,13 @@ const Home = () => {
                 <ul>
                     {Object.keys(files).map(folderName => (
                         <FileFromDb
+                            userRoles={userRoles}
                             key={folderName}
                             files={files[folderName]}
                             previewUrls={previewUrls[folderName] || []}
                             handleDownload={handleDownload}
                             handleDelete={handleDelete}
+                            selectedCompany={selectedCompany}
                         />
                     ))}
                     {draggedItems.length > 0 && draggedItems[0].types !== undefined && draggedItems[0].types !== 'file' && (

@@ -36,22 +36,23 @@ const ClientForm = ({
             <button onClick={AddDico}>Ajouter un client</button>
           </div>
         )}
-      </div>
-      <label htmlFor="companySelect">Entreprise:</label>
-      <select
-        id="companySelect"
-        value={selectedCompany}
-        onChange={handleSelectChange}
-        style={{ marginRight: '10px' }}
-      >
-        <option value="All">All</option>
-        {companyOptions &&
-          companyOptions.map((company, index) => (
-            <option key={index} value={company}>
-              {company}
-            </option>
-          ))}
-      </select>
+          </div>
+          {(userRoles.includes('Stramatel') || userRoles.includes('admin')) && (
+      <><label htmlFor="companySelect">Entreprise:</label><select
+                  id="companySelect"
+                  value={selectedCompany}
+                  onChange={handleSelectChange}
+                  style={{ marginRight: '10px' }}
+              >
+                  <option value="All">All</option>
+                  {companyOptions &&
+                      companyOptions.map((company, index) => (
+                          <option key={index} value={company}>
+                              {company}
+                          </option>
+                      ))}
+              </select></>
+          )}
     </div>
   );
 };

@@ -52,7 +52,7 @@ export const handleUploadFolder = async (filesWithPreviews, selectedCompany, fol
 
 export const handleDownload = async (file) => {
     try {
-        const response = await axios.get(`http://localhost:5000/download/${file.filename}`, {
+        const response = await axios.get(`http://localhost:5000/download/${file.originalname}/${file.folderName}`, {
             responseType: 'blob',
         });
 
