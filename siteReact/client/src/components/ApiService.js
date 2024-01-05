@@ -1,6 +1,5 @@
 // ApiService.js
 const BASE_URL = 'http://localhost:5000';
-
 export const getUserRoles = async (username) => {
     try {
         const response = await fetch(`${BASE_URL}/getUserRole/${username}`);

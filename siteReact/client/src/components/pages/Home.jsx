@@ -9,6 +9,7 @@ import FileItem from '../FileItem';
 import FolderItem from '../FolderItem';
 import FileFromDb from '../FileFromDb';
 import { getUserRoles, getFiles, getCompanies } from '../ApiService';
+import { useNavigate } from 'react-router-dom';
 const Home = () => {
     const [userRoles, setUserRoles] = useState([]);
     const [draggedItems, setDraggedItems] = useState([]);
@@ -21,6 +22,7 @@ const Home = () => {
     const [isPopupOpen, setPopupOpen] = useState(false);
     const [selectedFolder, setSelectedFolder] = useState(null);
     const [folderItems, setFolderItems] = useState([]);
+    const navigate = useNavigate();
     useEffect(() => {
         const fetchData = async () => {
             const username = localStorage.getItem('loggedInUser');
@@ -185,6 +187,10 @@ const Home = () => {
             console.error('Erreur lors de la suppression du fichier :', error);
         }
     };
+    const handleLogout = () => {
+        localStorage.setItem('loggedInUser', null);
+        navigate('/login');
+    };
 
 
     const handleSelectChange = (e) => {
@@ -223,6 +229,10 @@ const Home = () => {
 
     return (
         <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px' }}>
+               
+                <button onClick={handleLogout}>Logout</button>
+            </div>
             <ClientForm
                 userRoles={userRoles}
                 ID={ID}
